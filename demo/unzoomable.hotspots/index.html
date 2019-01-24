@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UnZoomable</title>
+    <style>
+        html, body {
+            width : 100%;
+            height : 100%;
+            margin:0;
+        }
+        #parent1 {
+            margin-left:80px;
+            position: relative;
+            float:left;
+            border:1px dotted darkgrey;
+            overflow: hidden;
+        }
+        #parent1 {
+            width :50%;
+            height:600px;
+        }
+        .hotspot {
+            transform-origin: center center;
+        }
+    </style>
+</head>
+<body>
+<div id="parent1" touch-action="none"></div>
+<script src="../../dist/zoomable.js"></script>
+<script src="ImageMap.js"></script>
+<script>
+    var map = new ImageMap(document.getElementById("parent1"), '../img.jpg');
+    var hotspot1 = map.addHotspot(1500, 900, './hotspot.png');
+    var hotspot2 = map.addHotspot(1000, 750, './hotspot.png');
+    var hotspot3 = map.addHotspot(500, 750, './hotspot.png');
+
+    hotspot1.element.addEventListener('pointerup', function(e) {
+        console.log("click on hotspot1")
+    });
+
+    hotspot2.element.addEventListener('pointerup', function(e) {
+        console.log("click on hotspot2")
+    });
+
+    hotspot3.element.addEventListener('pointerup', function(e) {
+        console.log("click on hotspot3")
+    });
+</script>
+</body>
+</html>

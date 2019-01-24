@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+        #imageMap {
+            width :1500px;
+            height:750px;
+            position:relative;
+            border:1px solid black;
+            overflow: hidden;
+        }
+        .hotspot {
+            position : absolute;
+        }
+        #hotspot1 {
+            top : 50%;
+            left : 50%;
+            z-index: 9999;
+        }
+        #hotspot2 {
+            top : 1000px;
+            left : 750px;
+            z-index: 9999;
+        }
+    </style>
+    <script src="../node_modules/pepjs/dist/pep.min.js"></script>
+</head>
+<body>
+<div id="imageMap">
+    <img src="hotspot.png" class="hotspot" id="hotspot1">
+    <img src="hotspot.png" class="hotspot" id="hotspot2">
+</div>
+<script type="module">
+    import ImageZoomable from "./ImageZoomable.js";
+
+    function getAbsolutePosition(element) {
+        var el = element;
+        var x = 0;
+        var y = 0;
+        while (el) {
+            if (el.tagName === 'BODY') {
+                // deal with browser quirks with body/window/document and page scroll
+                var xScroll = el.scrollLeft || document.documentElement.scrollLeft;
+                var yScroll = el.scrollTop || document.documentElement.scrollTop;
+                x += (el.offsetLeft - xScroll + el.clientLeft);
+                y += (el.offsetTop - yScroll + el.clientTop);
+            }
+            else {
+                // for all other non-BODY elements
+                x += (el.offsetLeft - el.scrollLeft + el.clientLeft);
+                y += (el.offsetTop - el.scrollTop + el.clientTop);
+            }
+            el = el.offsetParent;
+        }
+        return { x: x, y: y };
+    }
+
+    function translate(element, x, y, tX, tY, scale, animate, duration) {
+        if (animate === true) {
+            if (duration) {
+                element.style.transition = `${duration}s`;
+            } else {
+                element.style.transition = '1s';
+            }
+        } else {
+            element.style.transition = '0s';
+        }
+        const translateX = tX + x * scale;
+        const translateY = tY + y * scale;
+        element.style.transform = `translate(${translateX}px, ${translateY}px)`;
+    }
+
+    (function() {
+        const parent1 = document.getElementById("imageMap");
+        const zoomable = new ImageZoomable(parent1, "img.jpg");
+        const hotspot1 = document.getElementById("hotspot1");
+        const hotspot2 = document.getElementById("hotspot2");
+        let position1 = getAbsolutePosition(hotspot1);
+        let position2 = getAbsolutePosition(hotspot2);
+        hotspot1.style.top = "unset";
+        hotspot1.style.left = "unset";
+        hotspot2.style.top = "unset";
+        hotspot2.style.left = "unset";
+        zoomable.img.addEventListener("onApply", function(e) {
+            const tX = e.detail.x;
+            const tY = e.detail.y;
+            const scale = e.detail.scale;
+            const animate = e.detail.animate;
+            const duration = e.detail.duration;
+            translate(hotspot1, position1.x, position1.y, tX, tY, scale, animate, duration);
+            translate(hotspot2, position2.x, position2.y, tX, tY, scale, animate, duration);
+            // e.preventDefault();
+            // console.log(e.detail);
+        });
+    })();
+</script>
+</body>
+</html>
