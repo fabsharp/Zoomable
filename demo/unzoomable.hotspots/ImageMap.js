@@ -33,7 +33,7 @@ var ImageMap = function(container, backgroundImage) {
     this.zoomable = new Zoomable(container, backgroundImage);
     this.hotspots = [];
     var hotspots = this.hotspots;
-    this.zoomable.img.addEventListener("onApply", function(e) {
+    this.zoomable.parent.addEventListener("onApply", function(e) {
         hotspots.forEach(function(hotspot) {
             hotspot.apply(e.detail.x, e.detail.y, e.detail.scale, e.detail.animate, e.detail.duration)
         });

@@ -1529,12 +1529,12 @@ var Zoomable = (function () {
             if (e.pointerType === 'mouse' && e.buttons !== 1) {
                 return;
             }
-            this._downX = e.x;
-            this._downY = e.y;
+            this._downX = e.clientX;
+            this._downY = e.clientY;
             if (this._cache.length === 0) {
                 this._startPosition = {
-                    x: e.x,
-                    y: e.y,
+                    x: e.clientX,
+                    y: e.clientY,
                 };
                 this._target = e.target;
                 this._target.setPointerCapture(e.pointerId);
@@ -1566,8 +1566,8 @@ var Zoomable = (function () {
             var _center;
             if (this._cache[0]) {
                 _center = {
-                    x: this._cache[0].x,
-                    y: this._cache[0].y,
+                    x: this._cache[0].clientX,
+                    y: this._cache[0].clientY,
                 };
             }
             else {
@@ -1578,8 +1578,8 @@ var Zoomable = (function () {
             }
             if (this._cache.length > 1) {
                 _center = center(_center, {
-                    x: this._cache[1].x,
-                    y: this._cache[1].y,
+                    x: this._cache[1].clientX,
+                    y: this._cache[1].clientY,
                 });
             }
             return _center;
@@ -1785,8 +1785,6 @@ var Zoomable = (function () {
             _this.x = 0;
             _this.y = 0;
             _this.currentScale = 1;
-            _this.element.style.touchAction = 'none';
-            _this.element.style.transformOrigin = '0 0';
             _this.element.addEventListener('gesture-move', function () {
                 _this._OnGestureMove.call(_this);
             });
@@ -1867,6 +1865,8 @@ var Zoomable = (function () {
             this.element.dispatchEvent(event);
         };
         Zoomable.prototype.apply = function (animate, duration) {
+            // TODO : trace apply on IE10, it is called every pointermove ?
+            // TODO : tons of console errors in IE10 ?
             var tX = this.x + this.offsetX;
             var tY = this.y + this.offsetY;
             var _animate = animate;
@@ -1907,18 +1907,40 @@ var Zoomable = (function () {
             var _this = this;
             this.parent = parent;
             this.initialScale = 1;
+            this.parent.addEventListener('onApply', function (e) {
+                e.preventDefault();
+                var event = e;
+                var animate = event.detail.animate;
+                var duration = event.detail.duration;
+                var tX = event.detail.x;
+                var tY = event.detail.y;
+                var scale = event.detail.scale;
+                if (animate === true) {
+                    if (duration) {
+                        _this.img.style.transition = duration + "s";
+                    }
+                    else {
+                        _this.img.style.transition = '1s';
+                    }
+                }
+                else {
+                    _this.img.style.transition = '0s';
+                }
+                _this.img.style.transform = "translate(" + tX + "px, " + tY + "px) scale(" + scale + ")";
+            });
             this.img = document.createElement('img');
-            this.zoomable = new Zoomable(this.img);
+            this.img.style.transformOrigin = '0 0 0';
+            this.zoomable = new Zoomable(this.parent);
             this.img.onload = function () {
-                _this.responsive();
                 parent.appendChild(_this.img);
+                _this.responsive();
             };
             this.img.src = src;
-            this.img.addEventListener('zoomable-gesture-end', function () {
+            this.parent.addEventListener('zoomable-gesture-end', function () {
                 _this.bound.call(_this);
             });
             window.addEventListener('resize', function () {
-                _this.bound();
+                _this.responsive();
             });
         }
         ImageZoomable.prototype.bound = function () {
@@ -1960,7 +1982,7 @@ var Zoomable = (function () {
                 height = this.parent.offsetHeight;
                 width = height * ratio;
             }
-            var scale = width / this.img.width;
+            var scale = width / this.img.offsetWidth;
             var x = 0;
             var y = 0;
             if (height < this.parent.offsetHeight) {

@@ -59,12 +59,12 @@ export default class Transformable {
     if (e.pointerType === 'mouse' && e.buttons !== 1) {
       return;
     }
-    this._downX = e.x;
-    this._downY = e.y;
+    this._downX = e.clientX;
+    this._downY = e.clientY;
     if (this._cache.length === 0) {
       this._startPosition = {
-        x : e.x,
-        y : e.y,
+        x : e.clientX,
+        y : e.clientY,
       };
       this._target = e.target;
       this._target.setPointerCapture(e.pointerId);
@@ -95,8 +95,8 @@ export default class Transformable {
     let _center;
     if (this._cache[0]) {
       _center = {
-        x : this._cache[0].x,
-        y : this._cache[0].y,
+        x : this._cache[0].clientX,
+        y : this._cache[0].clientY,
       };
     } else {
       _center = {
@@ -106,8 +106,8 @@ export default class Transformable {
     }
     if (this._cache.length > 1) {
       _center = center(_center, {
-        x : this._cache[1].x,
-        y : this._cache[1].y,
+        x : this._cache[1].clientX,
+        y : this._cache[1].clientY,
       });
     }
     return _center;

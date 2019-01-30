@@ -5,14 +5,34 @@ export default class ImageZoomable {
   private zoomable : Zoomable;
   private initialScale = 1;
   constructor(public parent : HTMLElement, src : string) {
+    this.parent.addEventListener('onApply', (e) => {
+      e.preventDefault();
+      const event = <CustomEvent> e;
+      const animate = event.detail.animate;
+      const duration = event.detail.duration;
+      const tX = event.detail.x;
+      const tY = event.detail.y;
+      const scale = event.detail.scale;
+      if (animate === true) {
+        if (duration) {
+          this.img.style.transition = `${duration}s`;
+        } else {
+          this.img.style.transition = '1s';
+        }
+      } else {
+        this.img.style.transition = '0s';
+      }
+      this.img.style.transform = `translate(${tX}px, ${tY}px) scale(${scale})`;
+    });
     this.img = document.createElement('img');
-    this.zoomable = new Zoomable(this.img);
+    this.img.style.transformOrigin = '0 0 0';
+    this.zoomable = new Zoomable(this.parent);
     this.img.onload = () => {
-      this.responsive();
       parent.appendChild(this.img);
+      this.responsive();
     };
     this.img.src = src;
-    this.img.addEventListener('zoomable-gesture-end', () => {
+    this.parent.addEventListener('zoomable-gesture-end', () => {
       this.bound.call(this);
     });
     window.addEventListener('resize', () => {
@@ -50,13 +70,14 @@ export default class ImageZoomable {
   }
   private responsive() {
     const ratio = this.img.width / this.img.height;
+
     let width = this.parent.offsetWidth;
     let height = width / ratio;
     if (height > this.parent.offsetHeight) {
       height = this.parent.offsetHeight;
       width = height * ratio;
     }
-    const scale = width / this.img.width;
+    const scale = width / this.img.offsetWidth;
     let x = 0;
     let y = 0;
     if (height < this.parent.offsetHeight) {

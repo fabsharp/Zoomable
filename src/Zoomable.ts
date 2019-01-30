@@ -32,8 +32,6 @@ export default class Zoomable extends Transformable {
   public currentScale = 1;
   constructor(public element : HTMLElement) {
     super(element);
-    this.element.style.touchAction = 'none';
-    this.element.style.transformOrigin = '0 0';
     this.element.addEventListener('gesture-move', () => {
       this._OnGestureMove.call(this);
     });
@@ -112,6 +110,8 @@ export default class Zoomable extends Transformable {
     this.element.dispatchEvent(event);
   }
   public apply(animate? : boolean, duration? : number) {
+    // TODO : trace apply on IE10, it is called every pointermove ?
+    // TODO : tons of console errors in IE10 ?
     const tX = this.x + this.offsetX;
     const tY = this.y + this.offsetY;
     const _animate = animate;

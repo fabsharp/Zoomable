@@ -33,7 +33,7 @@
     import ImageZoomable from "../src/ImageZoomable.js";
     const parent1 = document.getElementById("parent1");
     const zoomable = new ImageZoomable(parent1, "img.jpg");
-    zoomable.img.addEventListener("onApply", function(e) {
+    zoomable.parent.addEventListener("onApply", function(e) {
          // e.preventDefault();
          console.log(e.detail);
     });
