@@ -1797,8 +1797,15 @@ var Zoomable = (function () {
             addWheelListener(element, function (e) {
                 e.preventDefault();
                 var offset = getAbsolutePosition(element);
-                var zX = e.clientX - offset.x - _this.x;
-                var zY = e.clientY - offset.y - _this.y;
+                var zX, zY;
+                if (e.originalEvent) {
+                    zX = e.originalEvent.clientX - offset.x - _this.x;
+                    zY = e.originalEvent.clientY - offset.y - _this.y;
+                }
+                else {
+                    zX = e.clientX - offset.x - _this.x;
+                    zY = e.clientY - offset.y - _this.y;
+                }
                 if (e.deltaY > 0) {
                     _this.zoomAt(zX, zY, _this.scale * 0.7);
                 }
