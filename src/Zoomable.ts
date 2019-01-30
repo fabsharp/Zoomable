@@ -44,8 +44,14 @@ export default class Zoomable extends Transformable {
     addWheelListener(element, (e : any) => {
       e.preventDefault();
       const offset = getAbsolutePosition(element);
-      const zX = e.clientX - offset.x - this.x;
-      const zY = e.clientY - offset.y - this.y;
+      let zX, zY;
+      if (e.originalEvent) {
+        zX = e.originalEvent.clientX - offset.x - this.x;
+        zY = e.originalEvent.clientY - offset.y - this.y;
+      } else {
+        zX = e.clientX - offset.x - this.x;
+        zY = e.clientY - offset.y - this.y;
+      }
       if (e.deltaY > 0) {
         this.zoomAt(zX, zY, this.scale * 0.7);
       } else {
