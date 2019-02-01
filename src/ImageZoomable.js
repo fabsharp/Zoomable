@@ -4,14 +4,36 @@ var ImageZoomable = /** @class */ (function () {
         var _this = this;
         this.parent = parent;
         this.initialScale = 1;
+        this.parent.addEventListener('onApply', function (e) {
+            e.preventDefault();
+            var event = e;
+            var animate = event.detail.animate;
+            var duration = event.detail.duration;
+            var tX = event.detail.x;
+            var tY = event.detail.y;
+            var scale = event.detail.scale;
+            if (animate === true) {
+                if (duration) {
+                    _this.img.style.transition = duration + "s";
+                }
+                else {
+                    _this.img.style.transition = '1s';
+                }
+            }
+            else {
+                _this.img.style.transition = '0s';
+            }
+            _this.img.style.transform = "translate(" + tX + "px, " + tY + "px) scale(" + scale + ")";
+        });
         this.img = document.createElement('img');
-        this.zoomable = new Zoomable(this.img);
+        this.img.style.transformOrigin = '0 0 0';
+        this.zoomable = new Zoomable(this.parent);
         this.img.onload = function () {
-            _this.responsive();
             parent.appendChild(_this.img);
+            _this.responsive();
         };
         this.img.src = src;
-        this.img.addEventListener('zoomable-gesture-end', function () {
+        this.parent.addEventListener('zoomable-gesture-end', function () {
             _this.bound.call(_this);
         });
         window.addEventListener('resize', function () {
@@ -57,7 +79,7 @@ var ImageZoomable = /** @class */ (function () {
             height = this.parent.offsetHeight;
             width = height * ratio;
         }
-        var scale = width / this.img.width;
+        var scale = width / this.img.offsetWidth;
         var x = 0;
         var y = 0;
         if (height < this.parent.offsetHeight) {

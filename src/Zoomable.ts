@@ -44,11 +44,14 @@ export default class Zoomable extends Transformable {
     addWheelListener(element, (e : any) => {
       e.preventDefault();
       const offset = getAbsolutePosition(element);
-      let zX, zY;
+      let zX;
+      let zY;
       if (e.originalEvent) {
+        // for IE10 & IE11
         zX = e.originalEvent.clientX - offset.x - this.x;
         zY = e.originalEvent.clientY - offset.y - this.y;
       } else {
+        // for others
         zX = e.clientX - offset.x - this.x;
         zY = e.clientY - offset.y - this.y;
       }
@@ -145,7 +148,7 @@ export default class Zoomable extends Transformable {
       } else {
         this.element.style.transition = '0s';
       }
-      this.element.style.transform = `translate(${tX}px, ${tY}px) scale(${this.scale})`;;
+      this.element.style.transform = `translate(${tX}px, ${tY}px) scale(${this.scale})`;
     }
   }
 }

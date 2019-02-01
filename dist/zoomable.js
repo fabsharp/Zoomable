@@ -1516,13 +1516,13 @@ var Zoomable = (function () {
             });
             // detect pan & double-tap
             element.addEventListener('gesture-start', function (e) {
-                _this._onGestureStart.call(_this);
+                _this._onGestureStart.call(_this, e);
             });
             element.addEventListener('gesture-move', function (e) {
-                _this._onGestureMove.call(_this);
+                _this._onGestureMove.call(_this, e);
             });
             element.addEventListener('gesture-end', function (e) {
-                _this._onGestureEnd.call(_this);
+                _this._onGestureEnd.call(_this, e);
             });
         }
         Transformable.prototype._onPointerDown = function (e) {
@@ -1541,7 +1541,13 @@ var Zoomable = (function () {
                 this._cache.push(e);
                 this._justStarted = true;
                 this._initialDistance = 0;
-                var event_1 = new CustomEvent('gesture-start', { bubbles: true });
+                var details = {
+                    bubbles: true,
+                    detail: {
+                        srcEvent: e,
+                    },
+                };
+                var event_1 = new CustomEvent('gesture-start', details);
                 this.element.dispatchEvent(event_1);
             }
             else {
@@ -1613,7 +1619,7 @@ var Zoomable = (function () {
             if (e.pointerType === 'mouse' && e.buttons !== 1) {
                 return;
             }
-            if (this._downX !== e.x && this._downY !== e.y) {
+            if (this._downX !== e.clientX && this._downY !== e.clientY) {
                 for (var i = 0; i < this._cache.length; i += 1) {
                     if (this._cache[i].pointerId === e.pointerId) {
                         if (this._justStarted) {
@@ -1628,7 +1634,13 @@ var Zoomable = (function () {
                         }
                     }
                 }
-                var event_2 = new CustomEvent('gesture-move', { bubbles: true });
+                var details = {
+                    bubbles: true,
+                    detail: {
+                        srcEvent: e,
+                    },
+                };
+                var event_2 = new CustomEvent('gesture-move', details);
                 this.element.dispatchEvent(event_2);
             }
         };
@@ -1643,20 +1655,36 @@ var Zoomable = (function () {
                 }
             }
             if (this._cache.length === 1) {
-                var event_3 = new CustomEvent('gesture-end', { bubbles: true });
+                var details = {
+                    bubbles: true,
+                    detail: {
+                        srcEvent: e,
+                    },
+                };
+                var event_3 = new CustomEvent('gesture-end', details);
                 this.element.dispatchEvent(event_3);
             }
             if (index !== -1) {
                 this._cache.splice(index, 1);
             }
         };
-        Transformable.prototype._onGestureStart = function () {
+        Transformable.prototype._onGestureStart = function (e) {
             this._cancel = false;
         };
-        Transformable.prototype._onGestureMove = function () {
-            this._cancel = true;
+        Transformable.prototype._onGestureMove = function (e) {
+            var point1 = {
+                x: e.detail.srcEvent.clientX,
+                y: e.detail.srcEvent.clientY,
+            };
+            var point2 = {
+                x: this._downX,
+                y: this._downY,
+            };
+            if (Math.abs(distance(point1, point2)) > 10) {
+                this._cancel = true;
+            }
         };
-        Transformable.prototype._onGestureEnd = function () {
+        Transformable.prototype._onGestureEnd = function (e) {
             var _this = this;
             if (this._cancel) {
                 if (this._timeout) {
@@ -1797,12 +1825,15 @@ var Zoomable = (function () {
             addWheelListener(element, function (e) {
                 e.preventDefault();
                 var offset = getAbsolutePosition(element);
-                var zX, zY;
+                var zX;
+                var zY;
                 if (e.originalEvent) {
+                    // for IE10 & IE11
                     zX = e.originalEvent.clientX - offset.x - _this.x;
                     zY = e.originalEvent.clientY - offset.y - _this.y;
                 }
                 else {
+                    // for others
                     zX = e.clientX - offset.x - _this.x;
                     zY = e.clientY - offset.y - _this.y;
                 }

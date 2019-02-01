@@ -45,8 +45,6 @@ var Zoomable = /** @class */ (function (_super) {
         _this.x = 0;
         _this.y = 0;
         _this.currentScale = 1;
-        _this.element.style.touchAction = 'none';
-        _this.element.style.transformOrigin = '0 0';
         _this.element.addEventListener('gesture-move', function () {
             _this._OnGestureMove.call(_this);
         });
@@ -59,8 +57,18 @@ var Zoomable = /** @class */ (function (_super) {
         addWheelListener(element, function (e) {
             e.preventDefault();
             var offset = getAbsolutePosition(element);
-            var zX = e.clientX - offset.x - _this.x;
-            var zY = e.clientY - offset.y - _this.y;
+            var zX;
+            var zY;
+            if (e.originalEvent) {
+                // for IE10 & IE11
+                zX = e.originalEvent.clientX - offset.x - _this.x;
+                zY = e.originalEvent.clientY - offset.y - _this.y;
+            }
+            else {
+                // for others
+                zX = e.clientX - offset.x - _this.x;
+                zY = e.clientY - offset.y - _this.y;
+            }
             if (e.deltaY > 0) {
                 _this.zoomAt(zX, zY, _this.scale * 0.7);
             }
@@ -127,6 +135,8 @@ var Zoomable = /** @class */ (function (_super) {
         this.element.dispatchEvent(event);
     };
     Zoomable.prototype.apply = function (animate, duration) {
+        // TODO : trace apply on IE10, it is called every pointermove ?
+        // TODO : tons of console errors in IE10 ?
         var tX = this.x + this.offsetX;
         var tY = this.y + this.offsetY;
         var _animate = animate;
@@ -157,7 +167,6 @@ var Zoomable = /** @class */ (function (_super) {
                 this.element.style.transition = '0s';
             }
             this.element.style.transform = "translate(" + tX + "px, " + tY + "px) scale(" + this.scale + ")";
-            ;
         }
     };
     return Zoomable;

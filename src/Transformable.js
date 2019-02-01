@@ -39,32 +39,38 @@ var Transformable = /** @class */ (function () {
         });
         // detect pan & double-tap
         element.addEventListener('gesture-start', function (e) {
-            _this._onGestureStart.call(_this);
+            _this._onGestureStart.call(_this, e);
         });
         element.addEventListener('gesture-move', function (e) {
-            _this._onGestureMove.call(_this);
+            _this._onGestureMove.call(_this, e);
         });
         element.addEventListener('gesture-end', function (e) {
-            _this._onGestureEnd.call(_this);
+            _this._onGestureEnd.call(_this, e);
         });
     }
     Transformable.prototype._onPointerDown = function (e) {
         if (e.pointerType === 'mouse' && e.buttons !== 1) {
             return;
         }
-        this._downX = e.x;
-        this._downY = e.y;
+        this._downX = e.clientX;
+        this._downY = e.clientY;
         if (this._cache.length === 0) {
             this._startPosition = {
-                x: e.x,
-                y: e.y,
+                x: e.clientX,
+                y: e.clientY,
             };
             this._target = e.target;
             this._target.setPointerCapture(e.pointerId);
             this._cache.push(e);
             this._justStarted = true;
             this._initialDistance = 0;
-            var event_1 = new CustomEvent('gesture-start', { bubbles: true });
+            var details = {
+                bubbles: true,
+                detail: {
+                    srcEvent: e,
+                },
+            };
+            var event_1 = new CustomEvent('gesture-start', details);
             this.element.dispatchEvent(event_1);
         }
         else {
@@ -89,8 +95,8 @@ var Transformable = /** @class */ (function () {
         var _center;
         if (this._cache[0]) {
             _center = {
-                x: this._cache[0].x,
-                y: this._cache[0].y,
+                x: this._cache[0].clientX,
+                y: this._cache[0].clientY,
             };
         }
         else {
@@ -101,8 +107,8 @@ var Transformable = /** @class */ (function () {
         }
         if (this._cache.length > 1) {
             _center = center(_center, {
-                x: this._cache[1].x,
-                y: this._cache[1].y,
+                x: this._cache[1].clientX,
+                y: this._cache[1].clientY,
             });
         }
         return _center;
@@ -136,7 +142,7 @@ var Transformable = /** @class */ (function () {
         if (e.pointerType === 'mouse' && e.buttons !== 1) {
             return;
         }
-        if (this._downX !== e.x && this._downY !== e.y) {
+        if (this._downX !== e.clientX && this._downY !== e.clientY) {
             for (var i = 0; i < this._cache.length; i += 1) {
                 if (this._cache[i].pointerId === e.pointerId) {
                     if (this._justStarted) {
@@ -151,7 +157,13 @@ var Transformable = /** @class */ (function () {
                     }
                 }
             }
-            var event_2 = new CustomEvent('gesture-move', { bubbles: true });
+            var details = {
+                bubbles: true,
+                detail: {
+                    srcEvent: e,
+                },
+            };
+            var event_2 = new CustomEvent('gesture-move', details);
             this.element.dispatchEvent(event_2);
         }
     };
@@ -166,20 +178,36 @@ var Transformable = /** @class */ (function () {
             }
         }
         if (this._cache.length === 1) {
-            var event_3 = new CustomEvent('gesture-end', { bubbles: true });
+            var details = {
+                bubbles: true,
+                detail: {
+                    srcEvent: e,
+                },
+            };
+            var event_3 = new CustomEvent('gesture-end', details);
             this.element.dispatchEvent(event_3);
         }
         if (index !== -1) {
             this._cache.splice(index, 1);
         }
     };
-    Transformable.prototype._onGestureStart = function () {
+    Transformable.prototype._onGestureStart = function (e) {
         this._cancel = false;
     };
-    Transformable.prototype._onGestureMove = function () {
-        this._cancel = true;
+    Transformable.prototype._onGestureMove = function (e) {
+        var point1 = {
+            x: e.detail.srcEvent.clientX,
+            y: e.detail.srcEvent.clientY,
+        };
+        var point2 = {
+            x: this._downX,
+            y: this._downY,
+        };
+        if (Math.abs(distance(point1, point2)) > 10) {
+            this._cancel = true;
+        }
     };
-    Transformable.prototype._onGestureEnd = function () {
+    Transformable.prototype._onGestureEnd = function (e) {
         var _this = this;
         if (this._cancel) {
             if (this._timeout) {

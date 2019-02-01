@@ -46,13 +46,13 @@ export default class Transformable {
     });
     // detect pan & double-tap
     element.addEventListener('gesture-start', (e) => {
-      this._onGestureStart.call(this);
+      this._onGestureStart.call(this, <CustomEvent> e);
     });
     element.addEventListener('gesture-move', (e) => {
-      this._onGestureMove.call(this);
+      this._onGestureMove.call(this, <CustomEvent> e);
     });
     element.addEventListener('gesture-end', (e) => {
-      this._onGestureEnd.call(this);
+      this._onGestureEnd.call(this, <CustomEvent> e);
     });
   }
   private _onPointerDown(e : PointerEvent) {
@@ -71,7 +71,13 @@ export default class Transformable {
       this._cache.push(e);
       this._justStarted = true;
       this._initialDistance = 0;
-      const event = new CustomEvent('gesture-start', { bubbles: true });
+      const details = {
+        bubbles : true,
+        detail : {
+          srcEvent : e,
+        },
+      };
+      const event = new CustomEvent('gesture-start', details);
       this.element.dispatchEvent(event);
     } else {
       this._startPosition = center(this._startPosition, { x : e.x, y : e.y });
@@ -138,7 +144,7 @@ export default class Transformable {
     if (e.pointerType === 'mouse' && e.buttons !== 1) {
       return;
     }
-    if (this._downX !== e.x && this._downY !== e.y) {
+    if (this._downX !== e.clientX && this._downY !== e.clientY) {
       for (let i = 0; i < this._cache.length; i += 1) {
         if (this._cache[i].pointerId === e.pointerId) {
           if (this._justStarted) {
@@ -153,7 +159,13 @@ export default class Transformable {
           }
         }
       }
-      const event = new CustomEvent('gesture-move', { bubbles: true });
+      const details = {
+        bubbles : true,
+        detail : {
+          srcEvent : e,
+        },
+      };
+      const event = new CustomEvent('gesture-move', details);
       this.element.dispatchEvent(event);
     }
   }
@@ -168,20 +180,36 @@ export default class Transformable {
       }
     }
     if (this._cache.length === 1) {
-      const event = new CustomEvent('gesture-end', { bubbles: true });
+      const details = {
+        bubbles : true,
+        detail : {
+          srcEvent : e,
+        },
+      };
+      const event = new CustomEvent('gesture-end', details);
       this.element.dispatchEvent(event);
     }
     if (index !== -1) {
       this._cache.splice(index, 1);
     }
   }
-  private _onGestureStart() {
+  private _onGestureStart(e : CustomEvent) {
     this._cancel = false;
   }
-  private _onGestureMove() {
-    this._cancel = true;
+  private _onGestureMove(e : CustomEvent) {
+    const point1 = {
+      x : e.detail.srcEvent.clientX,
+      y : e.detail.srcEvent.clientY,
+    };
+    const point2 = {
+      x : this._downX,
+      y : this._downY,
+    };
+    if (Math.abs(distance(point1, point2)) > 10) {
+      this._cancel = true;
+    }
   }
-  private _onGestureEnd() {
+  private _onGestureEnd(e : CustomEvent) {
     if (this._cancel) {
       if (this._timeout) {
         clearTimeout(this._timeout);
