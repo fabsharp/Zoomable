@@ -31,8 +31,12 @@
 <div id="parent2" touch-action="none"></div>
 <script src="../../dist/zoomable.js"></script>
 <script>
-    new Zoomable(document.getElementById("parent1"), '../img.jpg');
-    new Zoomable(document.getElementById("parent2"), '../img.jpg');
+    new Zoomable(document.getElementById("parent1"), '../img.jpg', {
+        zoomMax: 1.5
+    });
+    new Zoomable(document.getElementById("parent2"), '../img.jpg', {
+        zoomMax: 4
+    });
 </script>
 </body>
 </html>

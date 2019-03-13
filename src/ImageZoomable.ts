@@ -1,10 +1,10 @@
 import Zoomable from './Zoomable.js';
 
 export default class ImageZoomable {
-  public img : HTMLImageElement;
+  public img : any;
   private zoomable : Zoomable;
   private initialScale = 1;
-  constructor(public parent : HTMLElement, src : string) {
+  constructor(public parent : HTMLElement, src : string, private options?: any) {
     this.parent.addEventListener('onApply', (e) => {
       e.preventDefault();
       const event = <CustomEvent> e;
@@ -24,14 +24,22 @@ export default class ImageZoomable {
       }
       this.img.style.transform = `translate(${tX}px, ${tY}px) scale(${scale})`;
     });
-    this.img = document.createElement('img');
-    this.img.style.transformOrigin = '0 0 0';
-    this.zoomable = new Zoomable(this.parent);
-    this.img.onload = () => {
-      parent.appendChild(this.img);
+    this.zoomable = new Zoomable(this.parent, this.options);
+    if (typeof src === 'string') {
+      this.img = document.createElement('img');
+      this.img.style.transformOrigin = '0 0 0';
+      this.img.onload = () => {
+        parent.appendChild(this.img);
+        this.responsive();
+        const event = new CustomEvent('background-ready', { bubbles: true });
+        this.parent.dispatchEvent(event);
+      };
+      this.img.src = src;
+    } else if (typeof src === 'object') {
+      this.img = src;
+      this.img.style.transformOrigin = '0 0 0';
       this.responsive();
-    };
-    this.img.src = src;
+    }
     this.parent.addEventListener('zoomable-gesture-end', () => {
       this.bound.call(this);
     });
@@ -39,13 +47,28 @@ export default class ImageZoomable {
       this.responsive();
     });
   }
+  private isInlineSVG() :boolean {
+    return typeof this.img.width === 'object';
+  }
+  private getImgWidth() :number {
+    return (this.isInlineSVG()) ? this.img.width.baseVal.value : this.img.width;
+  }
+  private getImgOffsetWidth() :number {
+    return (this.isInlineSVG()) ? this.img.width.baseVal.value : this.img.offsetWidth;
+  }
+  private getImgHeight() :number {
+    return (this.isInlineSVG()) ? this.img.height.baseVal.value : this.img.height;
+  }
   private bound() {
+    if (this.options && this.options.bound === false) {
+      return;
+    }
     if (this.zoomable.scale < this.initialScale) {
       this.responsive();
       return;
     }
-    const width = this.img.width * this.zoomable.currentScale;
-    const height = this.img.height * this.zoomable.currentScale;
+    const width = this.getImgWidth() * this.zoomable.currentScale;
+    const height = this.getImgHeight() * this.zoomable.currentScale;
     if (width < this.parent.offsetWidth) {
       this.zoomable.x = (this.parent.offsetWidth - width) / 2;
     } else {
@@ -68,8 +91,8 @@ export default class ImageZoomable {
     }
     this.zoomable.apply(true, 0.5);
   }
-  private responsive() {
-    const ratio = this.img.width / this.img.height;
+  private responsive(animate? : boolean, duration? : number) {
+    const ratio = this.getImgWidth() / this.getImgHeight();
 
     let width = this.parent.offsetWidth;
     let height = width / ratio;
@@ -77,7 +100,7 @@ export default class ImageZoomable {
       height = this.parent.offsetHeight;
       width = height * ratio;
     }
-    const scale = width / this.img.offsetWidth;
+    const scale = width / this.getImgOffsetWidth();
     let x = 0;
     let y = 0;
     if (height < this.parent.offsetHeight) {
@@ -91,6 +114,6 @@ export default class ImageZoomable {
     this.zoomable.scale = scale;
     this.zoomable.currentScale = scale;
     this.initialScale = scale;
-    this.zoomable.apply();
+    this.zoomable.apply(animate, duration);
   }
 }

@@ -30,6 +30,7 @@ export default class Transformable {
   private _downY = 0;
   private _cancel = false;
   private _timeout? : any;
+  private _threshold :number = 10;
   constructor(public element : HTMLElement) {
     // detect gestures
     element.addEventListener('pointerdown', (e) => {
@@ -205,7 +206,7 @@ export default class Transformable {
       x : this._downX,
       y : this._downY,
     };
-    if (Math.abs(distance(point1, point2)) > 10) {
+    if (Math.abs(distance(point1, point2)) > this._threshold) {
       this._cancel = true;
     }
   }

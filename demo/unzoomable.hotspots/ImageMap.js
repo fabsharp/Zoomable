@@ -1,17 +1,34 @@
-var Hotspot = function(x, y, src) {
+var Hotspot = function(x, y, src, scale, data) {
+    var self = this;
     this.x = x;
     this.y = y;
+    this.scaleOpt = (typeof scale === 'boolean') ? scale : false;
     this.src = src;
     this.element = document.createElement('img');
     this.element.style.position = 'absolute';
     this.element.className = 'hotspot';
-    this.element.style.zIndex = '9999';
-    var self = this;
+    if(data) {
+        if(data.id) {
+            this.element.id = data.id;
+        }
+        if(data.classes && (data.classes.length > 0)) {
+            data.classes.forEach(function(_class){
+                self.element.classList.add(_class);
+            });
+        }
+        if(data.css) {
+            Object.keys(data.css).forEach(function(_key){
+                self.element.style[_key] = data.css[_key];
+            });
+        }
+        if(data.data){
+            this.element.zoomableData = data.data;
+        }
+    }
     this.element.onload = function() {
-        self.element.style.top = -(self.element.height) + 'px';
+        self.element.style.top = (self.scaleOpt) ? (-(self.element.height / 2) + 'px') : (-(self.element.height) + 'px');
         self.element.style.left =  -(self.element.width / 2) + 'px';
     };
-
     this.element.src = src;
 };
 Hotspot.prototype.apply = function(tX, tY, scale, animate, duration) {
@@ -26,11 +43,11 @@ Hotspot.prototype.apply = function(tX, tY, scale, animate, duration) {
     }
     var translateX = tX + this.x * scale;
     var translateY = tY + this.y * scale;
-    this.element.style.transform = 'translate('+ translateX + 'px, '+ translateY +'px)';
+    this.element.style.transform = (this.scaleOpt) ? 'translate('+ translateX + 'px, '+ translateY +'px) scale(' + scale + ', ' + scale + ')' : 'translate('+ translateX + 'px, '+ translateY +'px)';
 };
-var ImageMap = function(container, backgroundImage) {
+var ImageMap = function(container, backgroundImage, options) {
     this.container = container;
-    this.zoomable = new Zoomable(container, backgroundImage);
+    this.zoomable = new Zoomable(container, backgroundImage, options);
     this.hotspots = [];
     var hotspots = this.hotspots;
     this.zoomable.parent.addEventListener("onApply", function(e) {
@@ -39,9 +56,12 @@ var ImageMap = function(container, backgroundImage) {
         });
     });
 };
-ImageMap.prototype.addHotspot = function(x, y, src) {
-    var hotspot = new Hotspot(x, y, src);
+ImageMap.prototype.addHotspot = function(x, y, src, scale, data) {
+    var hotspot = new Hotspot(x, y, src, scale, data);
     this.hotspots.push(hotspot);
     this.container.appendChild(hotspot.element);
     return hotspot;
+};
+ImageMap.prototype.resetZoom = function(animate, duration) {
+    this.zoomable.responsive(animate, duration);
 };

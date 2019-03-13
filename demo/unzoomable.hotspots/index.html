@@ -30,21 +30,55 @@
 <script src="../../dist/zoomable.js"></script>
 <script src="ImageMap.js"></script>
 <script>
-    var map = new ImageMap(document.getElementById("parent1"), '../img.jpg');
+    document.getElementById("parent1").addEventListener('background-ready', function(){
+        console.log('background-ready !!');
+    });
+    var map = new ImageMap(document.getElementById("parent1"), '../img.jpg', {
+        // TODO :: get events details on callbacks
+        gestures: {
+            doubleTap: true,
+            onDoubleTap: () => {
+                console.log('onDoubleTap');
+                return false; //Do not execute default action
+            },
+            pan: true,
+            onPan: () => {
+                console.log('onPan');
+                // return false;
+            },
+            zoom: true,
+            onZoom: () => {
+                console.log('onZoom');
+            }
+        },
+        zoomMax: 4,
+        bound: true
+    });
+
     var hotspot1 = map.addHotspot(1500, 900, './hotspot.png');
-    var hotspot2 = map.addHotspot(1000, 750, './hotspot.png');
+    var hotspot2 = map.addHotspot(1000, 750, './hotspot.png', true, {
+        id: "myHotspotId",
+        classes: ["plop", "foo", "test"],
+        css: {
+            zIndex: '12',
+            marginTop: '15px'
+        },
+        data: {
+            name: 'hotspot #2'
+        }
+    });
     var hotspot3 = map.addHotspot(500, 750, './hotspot.png');
 
-    hotspot1.element.addEventListener('pointerup', function(e) {
-        alert("click on hotspot1")
+    hotspot1.element.addEventListener('click', function(e) {
+        console.log("click on hotspot1")
     });
 
     hotspot2.element.addEventListener('pointerup', function(e) {
-        alert("click on hotspot2")
+        console.log("click on ", this.zoomableData.name)
     });
 
     hotspot3.element.addEventListener('pointerup', function(e) {
-        alert("click on hotspot3")
+        console.log("click on hotspot3")
     });
 </script>
 </body>

@@ -30,7 +30,7 @@ export default class Zoomable extends Transformable {
   public x = 0;
   public y = 0;
   public currentScale = 1;
-  constructor(public element : HTMLElement) {
+  constructor(public element : HTMLElement, public options: any) {
     super(element);
     this.element.addEventListener('gesture-move', () => {
       this._OnGestureMove.call(this);
@@ -43,47 +43,55 @@ export default class Zoomable extends Transformable {
     });
     addWheelListener(element, (e : any) => {
       e.preventDefault();
-      const offset = getAbsolutePosition(element);
-      let zX;
-      let zY;
-      if (e.originalEvent) {
-        // for IE10 & IE11
-        zX = e.originalEvent.clientX - offset.x - this.x;
-        zY = e.originalEvent.clientY - offset.y - this.y;
-      } else {
-        // for others
-        zX = e.clientX - offset.x - this.x;
-        zY = e.clientY - offset.y - this.y;
+      if (this._executeGesturesOptions('zoom', 'onZoom')) {
+        const offset = getAbsolutePosition(element);
+        let zX;
+        let zY;
+        if (e.originalEvent) {
+          // for IE10 & IE11
+          zX = e.originalEvent.clientX - offset.x - this.x;
+          zY = e.originalEvent.clientY - offset.y - this.y;
+        } else {
+          // for others
+          zX = e.clientX - offset.x - this.x;
+          zY = e.clientY - offset.y - this.y;
+        }
+        if (e.deltaY > 0) {
+          this.zoomAt(zX, zY, this.scale * 0.7);
+        } else {
+          this.zoomAt(zX, zY, this.scale * 1.3);
+        }
+        this.apply(false);
+        this.currentScale = this.scale;
+        const event = new CustomEvent('zoomable-gesture-end', {bubbles: true});
+        this.element.dispatchEvent(event);
       }
-      if (e.deltaY > 0) {
-        this.zoomAt(zX, zY, this.scale * 0.7);
-      } else {
-        this.zoomAt(zX, zY, this.scale * 1.3);
-      }
-      this.apply(false);
-      this.currentScale = this.scale;
-      const event = new CustomEvent('zoomable-gesture-end', { bubbles: true });
-      this.element.dispatchEvent(event);
     });
   }
   private _onDoubleTap() {
-    const transform = this.transform;
-    const offset = getAbsolutePosition(this.element);
-    const zX = transform.center.x - offset.x - this.x;
-    const zY = transform.center.y - offset.y - this.y;
-    this.zoomAt(zX, zY , this.scale * 2);
-    this.apply(true);
+    if (this._executeGesturesOptions('doubleTap', 'onDoubleTap')) {
+      const transform = this.transform;
+      const offset = getAbsolutePosition(this.element);
+      const zX = transform.center.x - offset.x - this.x;
+      const zY = transform.center.y - offset.y - this.y;
+      this.zoomAt(zX, zY , this.scale * 2);
+      this.apply(true);
+    }
   }
   private _OnGestureMove() {
-    const transform = this.transform;
-    const offset = getAbsolutePosition(this.element);
-    const zX = transform.center.x - offset.x - this.x;
-    const zY = transform.center.y - offset.y - this.y;
-    if (this._cache.length > 1) {
-      this.zoomAt(zX, zY, transform.scale * this.currentScale);
+    const gestureName = (this._cache.length > 1) ? 'zoom' : 'pan';
+    const gestureEventName = (gestureName === 'zoom') ? 'onZoom' : 'onPan';
+    if (this._executeGesturesOptions(gestureName, gestureEventName)) {
+      const transform = this.transform;
+      const offset = getAbsolutePosition(this.element);
+      const zX = transform.center.x - offset.x - this.x;
+      const zY = transform.center.y - offset.y - this.y;
+      if (this._cache.length > 1) {
+        this.zoomAt(zX, zY, transform.scale * this.currentScale);
+      }
+      this.translate(transform.translateX, transform.translateY);
+      this.apply(false);
     }
-    this.translate(transform.translateX, transform.translateY);
-    this.apply(false);
   }
   private  _OnGestureEnd() {
     this.x += this.offsetX;
@@ -94,6 +102,20 @@ export default class Zoomable extends Transformable {
     const event = new CustomEvent('zoomable-gesture-end', { bubbles: true });
     this.element.dispatchEvent(event);
   }
+  private _executeGesturesOptions(gestureName: string, gestureEventName: string) {
+    if (this.options && this.options.gestures
+      && (typeof this.options.gestures[gestureName] === 'boolean')
+      && (!this.options.gestures[gestureName])) {
+      return false;
+    }
+    if (this.options && this.options.gestures
+      && (typeof this.options.gestures[gestureEventName] === 'function')) {
+      if (this.options.gestures[gestureEventName]() === false) {
+        return false;
+      }
+    }
+    return true;
+  }
   public translate(x : number, y : number) {
     this.offsetX = x;
     this.offsetY = y;
@@ -101,7 +123,9 @@ export default class Zoomable extends Transformable {
     this.element.dispatchEvent(event);
   }
   public zoomAt(x : number, y : number, scale : number) {
-    const newZoom = scale;
+    const newZoom = (this.options && this.options.zoomMax && (this.options.zoomMax < scale))
+        ? this.options.zoomMax
+        : scale;
     // position of click :
     const ix = x / this.scale;
     const iy = y / this.scale;
@@ -118,13 +142,11 @@ export default class Zoomable extends Transformable {
     const event = new CustomEvent('onZoomAt', { bubbles: true });
     this.element.dispatchEvent(event);
   }
-  public apply(animate? : boolean, duration? : number) {
+  public apply(_animate? : boolean, _duration? : number) {
     // TODO : trace apply on IE10, it is called every pointermove ?
     // TODO : tons of console errors in IE10 ?
     const tX = this.x + this.offsetX;
     const tY = this.y + this.offsetY;
-    const _animate = animate;
-    const _duration = duration;
     const details = {
       bubbles: true,
       detail : {
@@ -139,9 +161,9 @@ export default class Zoomable extends Transformable {
     const event = new CustomEvent('onApply', details);
     const cancelled = !this.element.dispatchEvent(event);
     if (!cancelled) {
-      if (animate === true) {
-        if (duration) {
-          this.element.style.transition = `${duration}s`;
+      if (_animate === true) {
+        if (_duration) {
+          this.element.style.transition = `${_duration}s`;
         } else {
           this.element.style.transition = '1s';
         }

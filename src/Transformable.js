@@ -24,6 +24,7 @@ var Transformable = /** @class */ (function () {
         this._downX = 0;
         this._downY = 0;
         this._cancel = false;
+        this._threshold = 10;
         // detect gestures
         element.addEventListener('pointerdown', function (e) {
             e.preventDefault();
@@ -203,7 +204,7 @@ var Transformable = /** @class */ (function () {
             x: this._downX,
             y: this._downY,
         };
-        if (Math.abs(distance(point1, point2)) > 10) {
+        if (Math.abs(distance(point1, point2)) > this._threshold) {
             this._cancel = true;
         }
     };

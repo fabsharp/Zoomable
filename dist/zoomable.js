@@ -1501,6 +1501,7 @@ var Zoomable = (function () {
             this._downX = 0;
             this._downY = 0;
             this._cancel = false;
+            this._threshold = 10;
             // detect gestures
             element.addEventListener('pointerdown', function (e) {
                 e.preventDefault();
@@ -1680,7 +1681,7 @@ var Zoomable = (function () {
                 x: this._downX,
                 y: this._downY,
             };
-            if (Math.abs(distance(point1, point2)) > 10) {
+            if (Math.abs(distance(point1, point2)) > this._threshold) {
                 this._cancel = true;
             }
         };
@@ -1804,9 +1805,10 @@ var Zoomable = (function () {
     }
     var Zoomable = /** @class */ (function (_super) {
         __extends(Zoomable, _super);
-        function Zoomable(element) {
+        function Zoomable(element, options) {
             var _this = _super.call(this, element) || this;
             _this.element = element;
+            _this.options = options;
             _this.offsetX = 0;
             _this.offsetY = 0;
             _this.scale = 1;
@@ -1824,50 +1826,58 @@ var Zoomable = (function () {
             });
             addWheelListener(element, function (e) {
                 e.preventDefault();
-                var offset = getAbsolutePosition(element);
-                var zX;
-                var zY;
-                if (e.originalEvent) {
-                    // for IE10 & IE11
-                    zX = e.originalEvent.clientX - offset.x - _this.x;
-                    zY = e.originalEvent.clientY - offset.y - _this.y;
+                if (_this._executeGesturesOptions('zoom', 'onZoom')) {
+                    var offset = getAbsolutePosition(element);
+                    var zX = void 0;
+                    var zY = void 0;
+                    if (e.originalEvent) {
+                        // for IE10 & IE11
+                        zX = e.originalEvent.clientX - offset.x - _this.x;
+                        zY = e.originalEvent.clientY - offset.y - _this.y;
+                    }
+                    else {
+                        // for others
+                        zX = e.clientX - offset.x - _this.x;
+                        zY = e.clientY - offset.y - _this.y;
+                    }
+                    if (e.deltaY > 0) {
+                        _this.zoomAt(zX, zY, _this.scale * 0.7);
+                    }
+                    else {
+                        _this.zoomAt(zX, zY, _this.scale * 1.3);
+                    }
+                    _this.apply(false);
+                    _this.currentScale = _this.scale;
+                    var event_1 = new CustomEvent('zoomable-gesture-end', { bubbles: true });
+                    _this.element.dispatchEvent(event_1);
                 }
-                else {
-                    // for others
-                    zX = e.clientX - offset.x - _this.x;
-                    zY = e.clientY - offset.y - _this.y;
-                }
-                if (e.deltaY > 0) {
-                    _this.zoomAt(zX, zY, _this.scale * 0.7);
-                }
-                else {
-                    _this.zoomAt(zX, zY, _this.scale * 1.3);
-                }
-                _this.apply(false);
-                _this.currentScale = _this.scale;
-                var event = new CustomEvent('zoomable-gesture-end', { bubbles: true });
-                _this.element.dispatchEvent(event);
             });
             return _this;
         }
         Zoomable.prototype._onDoubleTap = function () {
-            var transform = this.transform;
-            var offset = getAbsolutePosition(this.element);
-            var zX = transform.center.x - offset.x - this.x;
-            var zY = transform.center.y - offset.y - this.y;
-            this.zoomAt(zX, zY, this.scale * 2);
-            this.apply(true);
+            if (this._executeGesturesOptions('doubleTap', 'onDoubleTap')) {
+                var transform = this.transform;
+                var offset = getAbsolutePosition(this.element);
+                var zX = transform.center.x - offset.x - this.x;
+                var zY = transform.center.y - offset.y - this.y;
+                this.zoomAt(zX, zY, this.scale * 2);
+                this.apply(true);
+            }
         };
         Zoomable.prototype._OnGestureMove = function () {
-            var transform = this.transform;
-            var offset = getAbsolutePosition(this.element);
-            var zX = transform.center.x - offset.x - this.x;
-            var zY = transform.center.y - offset.y - this.y;
-            if (this._cache.length > 1) {
-                this.zoomAt(zX, zY, transform.scale * this.currentScale);
+            var gestureName = (this._cache.length > 1) ? 'zoom' : 'pan';
+            var gestureEventName = (gestureName === 'zoom') ? 'onZoom' : 'onPan';
+            if (this._executeGesturesOptions(gestureName, gestureEventName)) {
+                var transform = this.transform;
+                var offset = getAbsolutePosition(this.element);
+                var zX = transform.center.x - offset.x - this.x;
+                var zY = transform.center.y - offset.y - this.y;
+                if (this._cache.length > 1) {
+                    this.zoomAt(zX, zY, transform.scale * this.currentScale);
+                }
+                this.translate(transform.translateX, transform.translateY);
+                this.apply(false);
             }
-            this.translate(transform.translateX, transform.translateY);
-            this.apply(false);
         };
         Zoomable.prototype._OnGestureEnd = function () {
             this.x += this.offsetX;
@@ -1878,6 +1888,20 @@ var Zoomable = (function () {
             var event = new CustomEvent('zoomable-gesture-end', { bubbles: true });
             this.element.dispatchEvent(event);
         };
+        Zoomable.prototype._executeGesturesOptions = function (gestureName, gestureEventName) {
+            if (this.options && this.options.gestures
+                && (typeof this.options.gestures[gestureName] === 'boolean')
+                && (!this.options.gestures[gestureName])) {
+                return false;
+            }
+            if (this.options && this.options.gestures
+                && (typeof this.options.gestures[gestureEventName] === 'function')) {
+                if (this.options.gestures[gestureEventName]() === false) {
+                    return false;
+                }
+            }
+            return true;
+        };
         Zoomable.prototype.translate = function (x, y) {
             this.offsetX = x;
             this.offsetY = y;
@@ -1885,7 +1909,9 @@ var Zoomable = (function () {
             this.element.dispatchEvent(event);
         };
         Zoomable.prototype.zoomAt = function (x, y, scale) {
-            var newZoom = scale;
+            var newZoom = (this.options && this.options.zoomMax && (this.options.zoomMax < scale))
+                ? this.options.zoomMax
+                : scale;
             // position of click :
             var ix = x / this.scale;
             var iy = y / this.scale;
@@ -1902,13 +1928,11 @@ var Zoomable = (function () {
             var event = new CustomEvent('onZoomAt', { bubbles: true });
             this.element.dispatchEvent(event);
         };
-        Zoomable.prototype.apply = function (animate, duration) {
+        Zoomable.prototype.apply = function (_animate, _duration) {
             // TODO : trace apply on IE10, it is called every pointermove ?
             // TODO : tons of console errors in IE10 ?
             var tX = this.x + this.offsetX;
             var tY = this.y + this.offsetY;
-            var _animate = animate;
-            var _duration = duration;
             var details = {
                 bubbles: true,
                 detail: {
@@ -1923,9 +1947,9 @@ var Zoomable = (function () {
             var event = new CustomEvent('onApply', details);
             var cancelled = !this.element.dispatchEvent(event);
             if (!cancelled) {
-                if (animate === true) {
-                    if (duration) {
-                        this.element.style.transition = duration + "s";
+                if (_animate === true) {
+                    if (_duration) {
+                        this.element.style.transition = _duration + "s";
                     }
                     else {
                         this.element.style.transition = '1s';
@@ -1941,9 +1965,10 @@ var Zoomable = (function () {
     }(Transformable));
 
     var ImageZoomable = /** @class */ (function () {
-        function ImageZoomable(parent, src) {
+        function ImageZoomable(parent, src, options) {
             var _this = this;
             this.parent = parent;
+            this.options = options;
             this.initialScale = 1;
             this.parent.addEventListener('onApply', function (e) {
                 e.preventDefault();
@@ -1966,14 +1991,23 @@ var Zoomable = (function () {
                 }
                 _this.img.style.transform = "translate(" + tX + "px, " + tY + "px) scale(" + scale + ")";
             });
-            this.img = document.createElement('img');
-            this.img.style.transformOrigin = '0 0 0';
-            this.zoomable = new Zoomable(this.parent);
-            this.img.onload = function () {
-                parent.appendChild(_this.img);
-                _this.responsive();
-            };
-            this.img.src = src;
+            this.zoomable = new Zoomable(this.parent, this.options);
+            if (typeof src === 'string') {
+                this.img = document.createElement('img');
+                this.img.style.transformOrigin = '0 0 0';
+                this.img.onload = function () {
+                    parent.appendChild(_this.img);
+                    _this.responsive();
+                    var event = new CustomEvent('background-ready', { bubbles: true });
+                    _this.parent.dispatchEvent(event);
+                };
+                this.img.src = src;
+            }
+            else if (typeof src === 'object') {
+                this.img = src;
+                this.img.style.transformOrigin = '0 0 0';
+                this.responsive();
+            }
             this.parent.addEventListener('zoomable-gesture-end', function () {
                 _this.bound.call(_this);
             });
@@ -1981,13 +2015,28 @@ var Zoomable = (function () {
                 _this.responsive();
             });
         }
+        ImageZoomable.prototype.isInlineSVG = function () {
+            return typeof this.img.width === 'object';
+        };
+        ImageZoomable.prototype.getImgWidth = function () {
+            return (this.isInlineSVG()) ? this.img.width.baseVal.value : this.img.width;
+        };
+        ImageZoomable.prototype.getImgOffsetWidth = function () {
+            return (this.isInlineSVG()) ? this.img.width.baseVal.value : this.img.offsetWidth;
+        };
+        ImageZoomable.prototype.getImgHeight = function () {
+            return (this.isInlineSVG()) ? this.img.height.baseVal.value : this.img.height;
+        };
         ImageZoomable.prototype.bound = function () {
+            if (this.options && this.options.bound === false) {
+                return;
+            }
             if (this.zoomable.scale < this.initialScale) {
                 this.responsive();
                 return;
             }
-            var width = this.img.width * this.zoomable.currentScale;
-            var height = this.img.height * this.zoomable.currentScale;
+            var width = this.getImgWidth() * this.zoomable.currentScale;
+            var height = this.getImgHeight() * this.zoomable.currentScale;
             if (width < this.parent.offsetWidth) {
                 this.zoomable.x = (this.parent.offsetWidth - width) / 2;
             }
@@ -2012,15 +2061,15 @@ var Zoomable = (function () {
             }
             this.zoomable.apply(true, 0.5);
         };
-        ImageZoomable.prototype.responsive = function () {
-            var ratio = this.img.width / this.img.height;
+        ImageZoomable.prototype.responsive = function (animate, duration) {
+            var ratio = this.getImgWidth() / this.getImgHeight();
             var width = this.parent.offsetWidth;
             var height = width / ratio;
             if (height > this.parent.offsetHeight) {
                 height = this.parent.offsetHeight;
                 width = height * ratio;
             }
-            var scale = width / this.img.offsetWidth;
+            var scale = width / this.getImgOffsetWidth();
             var x = 0;
             var y = 0;
             if (height < this.parent.offsetHeight) {
@@ -2034,13 +2083,13 @@ var Zoomable = (function () {
             this.zoomable.scale = scale;
             this.zoomable.currentScale = scale;
             this.initialScale = scale;
-            this.zoomable.apply();
+            this.zoomable.apply(animate, duration);
         };
         return ImageZoomable;
     }());
 
-    function index (element, src) {
-        return new ImageZoomable(element, src);
+    function index (element, src, options) {
+        return new ImageZoomable(element, src, options);
     }
 
     return index;

@@ -36,9 +36,10 @@ export function getAbsolutePosition(element) {
 }
 var Zoomable = /** @class */ (function (_super) {
     __extends(Zoomable, _super);
-    function Zoomable(element) {
+    function Zoomable(element, options) {
         var _this = _super.call(this, element) || this;
         _this.element = element;
+        _this.options = options;
         _this.offsetX = 0;
         _this.offsetY = 0;
         _this.scale = 1;
@@ -56,50 +57,58 @@ var Zoomable = /** @class */ (function (_super) {
         });
         addWheelListener(element, function (e) {
             e.preventDefault();
-            var offset = getAbsolutePosition(element);
-            var zX;
-            var zY;
-            if (e.originalEvent) {
-                // for IE10 & IE11
-                zX = e.originalEvent.clientX - offset.x - _this.x;
-                zY = e.originalEvent.clientY - offset.y - _this.y;
+            if (_this._executeGesturesOptions('zoom', 'onZoom')) {
+                var offset = getAbsolutePosition(element);
+                var zX = void 0;
+                var zY = void 0;
+                if (e.originalEvent) {
+                    // for IE10 & IE11
+                    zX = e.originalEvent.clientX - offset.x - _this.x;
+                    zY = e.originalEvent.clientY - offset.y - _this.y;
+                }
+                else {
+                    // for others
+                    zX = e.clientX - offset.x - _this.x;
+                    zY = e.clientY - offset.y - _this.y;
+                }
+                if (e.deltaY > 0) {
+                    _this.zoomAt(zX, zY, _this.scale * 0.7);
+                }
+                else {
+                    _this.zoomAt(zX, zY, _this.scale * 1.3);
+                }
+                _this.apply(false);
+                _this.currentScale = _this.scale;
+                var event_1 = new CustomEvent('zoomable-gesture-end', { bubbles: true });
+                _this.element.dispatchEvent(event_1);
             }
-            else {
-                // for others
-                zX = e.clientX - offset.x - _this.x;
-                zY = e.clientY - offset.y - _this.y;
-            }
-            if (e.deltaY > 0) {
-                _this.zoomAt(zX, zY, _this.scale * 0.7);
-            }
-            else {
-                _this.zoomAt(zX, zY, _this.scale * 1.3);
-            }
-            _this.apply(false);
-            _this.currentScale = _this.scale;
-            var event = new CustomEvent('zoomable-gesture-end', { bubbles: true });
-            _this.element.dispatchEvent(event);
         });
         return _this;
     }
     Zoomable.prototype._onDoubleTap = function () {
-        var transform = this.transform;
-        var offset = getAbsolutePosition(this.element);
-        var zX = transform.center.x - offset.x - this.x;
-        var zY = transform.center.y - offset.y - this.y;
-        this.zoomAt(zX, zY, this.scale * 2);
-        this.apply(true);
+        if (this._executeGesturesOptions('doubleTap', 'onDoubleTap')) {
+            var transform = this.transform;
+            var offset = getAbsolutePosition(this.element);
+            var zX = transform.center.x - offset.x - this.x;
+            var zY = transform.center.y - offset.y - this.y;
+            this.zoomAt(zX, zY, this.scale * 2);
+            this.apply(true);
+        }
     };
     Zoomable.prototype._OnGestureMove = function () {
-        var transform = this.transform;
-        var offset = getAbsolutePosition(this.element);
-        var zX = transform.center.x - offset.x - this.x;
-        var zY = transform.center.y - offset.y - this.y;
-        if (this._cache.length > 1) {
-            this.zoomAt(zX, zY, transform.scale * this.currentScale);
+        var gestureName = (this._cache.length > 1) ? 'zoom' : 'pan';
+        var gestureEventName = (gestureName === 'zoom') ? 'onZoom' : 'onPan';
+        if (this._executeGesturesOptions(gestureName, gestureEventName)) {
+            var transform = this.transform;
+            var offset = getAbsolutePosition(this.element);
+            var zX = transform.center.x - offset.x - this.x;
+            var zY = transform.center.y - offset.y - this.y;
+            if (this._cache.length > 1) {
+                this.zoomAt(zX, zY, transform.scale * this.currentScale);
+            }
+            this.translate(transform.translateX, transform.translateY);
+            this.apply(false);
         }
-        this.translate(transform.translateX, transform.translateY);
-        this.apply(false);
     };
     Zoomable.prototype._OnGestureEnd = function () {
         this.x += this.offsetX;
@@ -110,6 +119,20 @@ var Zoomable = /** @class */ (function (_super) {
         var event = new CustomEvent('zoomable-gesture-end', { bubbles: true });
         this.element.dispatchEvent(event);
     };
+    Zoomable.prototype._executeGesturesOptions = function (gestureName, gestureEventName) {
+        if (this.options && this.options.gestures
+            && (typeof this.options.gestures[gestureName] === 'boolean')
+            && (!this.options.gestures[gestureName])) {
+            return false;
+        }
+        if (this.options && this.options.gestures
+            && (typeof this.options.gestures[gestureEventName] === 'function')) {
+            if (this.options.gestures[gestureEventName]() === false) {
+                return false;
+            }
+        }
+        return true;
+    };
     Zoomable.prototype.translate = function (x, y) {
         this.offsetX = x;
         this.offsetY = y;
@@ -117,7 +140,9 @@ var Zoomable = /** @class */ (function (_super) {
         this.element.dispatchEvent(event);
     };
     Zoomable.prototype.zoomAt = function (x, y, scale) {
-        var newZoom = scale;
+        var newZoom = (this.options && this.options.zoomMax && (this.options.zoomMax < scale))
+            ? this.options.zoomMax
+            : scale;
         // position of click :
         var ix = x / this.scale;
         var iy = y / this.scale;
@@ -134,13 +159,11 @@ var Zoomable = /** @class */ (function (_super) {
         var event = new CustomEvent('onZoomAt', { bubbles: true });
         this.element.dispatchEvent(event);
     };
-    Zoomable.prototype.apply = function (animate, duration) {
+    Zoomable.prototype.apply = function (_animate, _duration) {
         // TODO : trace apply on IE10, it is called every pointermove ?
         // TODO : tons of console errors in IE10 ?
         var tX = this.x + this.offsetX;
         var tY = this.y + this.offsetY;
-        var _animate = animate;
-        var _duration = duration;
         var details = {
             bubbles: true,
             detail: {
@@ -155,9 +178,9 @@ var Zoomable = /** @class */ (function (_super) {
         var event = new CustomEvent('onApply', details);
         var cancelled = !this.element.dispatchEvent(event);
         if (!cancelled) {
-            if (animate === true) {
-                if (duration) {
-                    this.element.style.transition = duration + "s";
+            if (_animate === true) {
+                if (_duration) {
+                    this.element.style.transition = _duration + "s";
                 }
                 else {
                     this.element.style.transition = '1s';

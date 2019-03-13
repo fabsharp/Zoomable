@@ -1,8 +1,9 @@
 import Zoomable from './Zoomable.js';
 var ImageZoomable = /** @class */ (function () {
-    function ImageZoomable(parent, src) {
+    function ImageZoomable(parent, src, options) {
         var _this = this;
         this.parent = parent;
+        this.options = options;
         this.initialScale = 1;
         this.parent.addEventListener('onApply', function (e) {
             e.preventDefault();
@@ -25,14 +26,23 @@ var ImageZoomable = /** @class */ (function () {
             }
             _this.img.style.transform = "translate(" + tX + "px, " + tY + "px) scale(" + scale + ")";
         });
-        this.img = document.createElement('img');
-        this.img.style.transformOrigin = '0 0 0';
-        this.zoomable = new Zoomable(this.parent);
-        this.img.onload = function () {
-            parent.appendChild(_this.img);
-            _this.responsive();
-        };
-        this.img.src = src;
+        this.zoomable = new Zoomable(this.parent, this.options);
+        if (typeof src === 'string') {
+            this.img = document.createElement('img');
+            this.img.style.transformOrigin = '0 0 0';
+            this.img.onload = function () {
+                parent.appendChild(_this.img);
+                _this.responsive();
+                var event = new CustomEvent('background-ready', { bubbles: true });
+                _this.parent.dispatchEvent(event);
+            };
+            this.img.src = src;
+        }
+        else if (typeof src === 'object') {
+            this.img = src;
+            this.img.style.transformOrigin = '0 0 0';
+            this.responsive();
+        }
         this.parent.addEventListener('zoomable-gesture-end', function () {
             _this.bound.call(_this);
         });
@@ -40,13 +50,28 @@ var ImageZoomable = /** @class */ (function () {
             _this.responsive();
         });
     }
+    ImageZoomable.prototype.isInlineSVG = function () {
+        return typeof this.img.width === 'object';
+    };
+    ImageZoomable.prototype.getImgWidth = function () {
+        return (this.isInlineSVG()) ? this.img.width.baseVal.value : this.img.width;
+    };
+    ImageZoomable.prototype.getImgOffsetWidth = function () {
+        return (this.isInlineSVG()) ? this.img.width.baseVal.value : this.img.offsetWidth;
+    };
+    ImageZoomable.prototype.getImgHeight = function () {
+        return (this.isInlineSVG()) ? this.img.height.baseVal.value : this.img.height;
+    };
     ImageZoomable.prototype.bound = function () {
+        if (this.options && this.options.bound === false) {
+            return;
+        }
         if (this.zoomable.scale < this.initialScale) {
             this.responsive();
             return;
         }
-        var width = this.img.width * this.zoomable.currentScale;
-        var height = this.img.height * this.zoomable.currentScale;
+        var width = this.getImgWidth() * this.zoomable.currentScale;
+        var height = this.getImgHeight() * this.zoomable.currentScale;
         if (width < this.parent.offsetWidth) {
             this.zoomable.x = (this.parent.offsetWidth - width) / 2;
         }
@@ -71,15 +96,15 @@ var ImageZoomable = /** @class */ (function () {
         }
         this.zoomable.apply(true, 0.5);
     };
-    ImageZoomable.prototype.responsive = function () {
-        var ratio = this.img.width / this.img.height;
+    ImageZoomable.prototype.responsive = function (animate, duration) {
+        var ratio = this.getImgWidth() / this.getImgHeight();
         var width = this.parent.offsetWidth;
         var height = width / ratio;
         if (height > this.parent.offsetHeight) {
             height = this.parent.offsetHeight;
             width = height * ratio;
         }
-        var scale = width / this.img.offsetWidth;
+        var scale = width / this.getImgOffsetWidth();
         var x = 0;
         var y = 0;
         if (height < this.parent.offsetHeight) {
@@ -93,7 +118,7 @@ var ImageZoomable = /** @class */ (function () {
         this.zoomable.scale = scale;
         this.zoomable.currentScale = scale;
         this.initialScale = scale;
-        this.zoomable.apply();
+        this.zoomable.apply(animate, duration);
     };
     return ImageZoomable;
 }());
