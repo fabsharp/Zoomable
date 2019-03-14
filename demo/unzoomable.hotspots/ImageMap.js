@@ -25,6 +25,9 @@ var Hotspot = function(x, y, src, scale, data) {
             this.element.zoomableData = data.data;
         }
     }
+    if((!data) || (!data.css) || (!data.css.zIndex)){
+        self.element.style.zIndex = '1';
+    }
     this.element.onload = function() {
         self.element.style.top = (self.scaleOpt) ? (-(self.element.height / 2) + 'px') : (-(self.element.height) + 'px');
         self.element.style.left =  -(self.element.width / 2) + 'px';
