@@ -122,7 +122,7 @@ export default class Zoomable extends Transformable {
     const event = new CustomEvent('onTranslate', { bubbles: true });
     this.element.dispatchEvent(event);
   }
-  public zoomAt(x : number, y : number, scale : number) {
+  public zoomAt(x : number, y : number, scale : number, forceCenter : boolean = false) {
     const newZoom = (this.options && this.options.zoomMax && (this.options.zoomMax < scale))
         ? this.options.zoomMax
         : scale;
@@ -133,8 +133,15 @@ export default class Zoomable extends Transformable {
     const nx = ix * newZoom;
     const ny = iy * newZoom;
     // difference
-    const cx = (ix + (x - ix) - nx);
-    const cy = (iy + (y - iy) - ny);
+    let cx = (ix + (x - ix) - nx);
+    let cy = (iy + (y - iy) - ny);
+    if (forceCenter === true) {
+      // middle difference
+      const midX = (this.element.offsetWidth / 2) - x;
+      const midY = (this.element.offsetHeight / 2) - y;
+      cx += midX;
+      cy += midY;
+    }
     // update
     this.scale = newZoom;
     this.x += cx;

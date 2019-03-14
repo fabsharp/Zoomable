@@ -1908,7 +1908,8 @@ var Zoomable = (function () {
             var event = new CustomEvent('onTranslate', { bubbles: true });
             this.element.dispatchEvent(event);
         };
-        Zoomable.prototype.zoomAt = function (x, y, scale) {
+        Zoomable.prototype.zoomAt = function (x, y, scale, forceCenter) {
+            if (forceCenter === void 0) { forceCenter = false; }
             var newZoom = (this.options && this.options.zoomMax && (this.options.zoomMax < scale))
                 ? this.options.zoomMax
                 : scale;
@@ -1921,6 +1922,13 @@ var Zoomable = (function () {
             // difference
             var cx = (ix + (x - ix) - nx);
             var cy = (iy + (y - iy) - ny);
+            if (forceCenter === true) {
+                // middle difference
+                var midX = (this.element.offsetWidth / 2) - x;
+                var midY = (this.element.offsetHeight / 2) - y;
+                cx += midX;
+                cy += midY;
+            }
             // update
             this.scale = newZoom;
             this.x += cx;
