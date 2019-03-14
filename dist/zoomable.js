@@ -1811,6 +1811,11 @@ var Zoomable = (function () {
             _this.options = options;
             _this.offsetX = 0;
             _this.offsetY = 0;
+            _this.initial = {
+                x: 0,
+                y: 0,
+                scale: 1,
+            };
             _this.scale = 1;
             _this.x = 0;
             _this.y = 0;
@@ -1908,14 +1913,16 @@ var Zoomable = (function () {
             var event = new CustomEvent('onTranslate', { bubbles: true });
             this.element.dispatchEvent(event);
         };
-        Zoomable.prototype.zoomAt = function (x, y, scale, forceCenter) {
+        Zoomable.prototype.zoomAt = function (x, y, scale, forceCenter, forceInitial) {
             if (forceCenter === void 0) { forceCenter = false; }
+            if (forceInitial === void 0) { forceInitial = false; }
             var newZoom = (this.options && this.options.zoomMax && (this.options.zoomMax < scale))
                 ? this.options.zoomMax
                 : scale;
+            var _scale = (forceInitial) ? this.initial.scale : this.scale;
             // position of click :
-            var ix = x / this.scale;
-            var iy = y / this.scale;
+            var ix = x / _scale;
+            var iy = y / _scale;
             // position of click with new zoom
             var nx = ix * newZoom;
             var ny = iy * newZoom;
@@ -1931,6 +1938,10 @@ var Zoomable = (function () {
             }
             // update
             this.scale = newZoom;
+            if (forceInitial === true) {
+                this.x = this.initial.x;
+                this.y = this.initial.y;
+            }
             this.x += cx;
             this.y += cy;
             var event = new CustomEvent('onZoomAt', { bubbles: true });
@@ -2077,20 +2088,25 @@ var Zoomable = (function () {
                 height = this.parent.offsetHeight;
                 width = height * ratio;
             }
-            var scale = width / this.getImgOffsetWidth();
-            var x = 0;
-            var y = 0;
+            var _scale = width / this.getImgOffsetWidth();
+            var _x = 0;
+            var _y = 0;
             if (height < this.parent.offsetHeight) {
-                y = (this.parent.offsetHeight - height) / 2;
+                _y = (this.parent.offsetHeight - height) / 2;
             }
             if (width < this.parent.offsetWidth) {
-                x = (this.parent.offsetWidth - width) / 2;
+                _x = (this.parent.offsetWidth - width) / 2;
             }
-            this.zoomable.x = x;
-            this.zoomable.y = y;
-            this.zoomable.scale = scale;
-            this.zoomable.currentScale = scale;
-            this.initialScale = scale;
+            this.zoomable.initial = {
+                x: _x,
+                y: _y,
+                scale: _scale,
+            };
+            this.zoomable.x = _x;
+            this.zoomable.y = _y;
+            this.zoomable.scale = _scale;
+            this.zoomable.currentScale = _scale;
+            this.initialScale = _scale;
             this.zoomable.apply(animate, duration);
         };
         return ImageZoomable;

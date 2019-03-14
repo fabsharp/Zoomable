@@ -42,6 +42,11 @@ var Zoomable = /** @class */ (function (_super) {
         _this.options = options;
         _this.offsetX = 0;
         _this.offsetY = 0;
+        _this.initial = {
+            x: 0,
+            y: 0,
+            scale: 1,
+        };
         _this.scale = 1;
         _this.x = 0;
         _this.y = 0;
@@ -139,14 +144,16 @@ var Zoomable = /** @class */ (function (_super) {
         var event = new CustomEvent('onTranslate', { bubbles: true });
         this.element.dispatchEvent(event);
     };
-    Zoomable.prototype.zoomAt = function (x, y, scale, forceCenter) {
+    Zoomable.prototype.zoomAt = function (x, y, scale, forceCenter, forceInitial) {
         if (forceCenter === void 0) { forceCenter = false; }
+        if (forceInitial === void 0) { forceInitial = false; }
         var newZoom = (this.options && this.options.zoomMax && (this.options.zoomMax < scale))
             ? this.options.zoomMax
             : scale;
+        var _scale = (forceInitial) ? this.initial.scale : this.scale;
         // position of click :
-        var ix = x / this.scale;
-        var iy = y / this.scale;
+        var ix = x / _scale;
+        var iy = y / _scale;
         // position of click with new zoom
         var nx = ix * newZoom;
         var ny = iy * newZoom;
@@ -162,6 +169,10 @@ var Zoomable = /** @class */ (function (_super) {
         }
         // update
         this.scale = newZoom;
+        if (forceInitial === true) {
+            this.x = this.initial.x;
+            this.y = this.initial.y;
+        }
         this.x += cx;
         this.y += cy;
         var event = new CustomEvent('onZoomAt', { bubbles: true });

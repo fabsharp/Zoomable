@@ -26,6 +26,11 @@ export function getAbsolutePosition(element : HTMLElement) : any {
 export default class Zoomable extends Transformable {
   offsetX = 0;
   offsetY = 0;
+  public initial = {
+    x: 0,
+    y: 0,
+    scale: 1,
+  };
   public scale = 1;
   public x = 0;
   public y = 0;
@@ -122,13 +127,15 @@ export default class Zoomable extends Transformable {
     const event = new CustomEvent('onTranslate', { bubbles: true });
     this.element.dispatchEvent(event);
   }
-  public zoomAt(x : number, y : number, scale : number, forceCenter : boolean = false) {
+  public zoomAt(x : number, y : number, scale : number,
+                forceCenter : boolean = false, forceInitial : boolean = false) {
     const newZoom = (this.options && this.options.zoomMax && (this.options.zoomMax < scale))
         ? this.options.zoomMax
         : scale;
+    const _scale = (forceInitial) ? this.initial.scale : this.scale;
     // position of click :
-    const ix = x / this.scale;
-    const iy = y / this.scale;
+    const ix = x / _scale;
+    const iy = y / _scale;
     // position of click with new zoom
     const nx = ix * newZoom;
     const ny = iy * newZoom;
@@ -144,6 +151,10 @@ export default class Zoomable extends Transformable {
     }
     // update
     this.scale = newZoom;
+    if (forceInitial === true) {
+      this.x = this.initial.x;
+      this.y = this.initial.y;
+    }
     this.x += cx;
     this.y += cy;
     const event = new CustomEvent('onZoomAt', { bubbles: true });

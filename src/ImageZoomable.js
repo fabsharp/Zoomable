@@ -104,20 +104,25 @@ var ImageZoomable = /** @class */ (function () {
             height = this.parent.offsetHeight;
             width = height * ratio;
         }
-        var scale = width / this.getImgOffsetWidth();
-        var x = 0;
-        var y = 0;
+        var _scale = width / this.getImgOffsetWidth();
+        var _x = 0;
+        var _y = 0;
         if (height < this.parent.offsetHeight) {
-            y = (this.parent.offsetHeight - height) / 2;
+            _y = (this.parent.offsetHeight - height) / 2;
         }
         if (width < this.parent.offsetWidth) {
-            x = (this.parent.offsetWidth - width) / 2;
+            _x = (this.parent.offsetWidth - width) / 2;
         }
-        this.zoomable.x = x;
-        this.zoomable.y = y;
-        this.zoomable.scale = scale;
-        this.zoomable.currentScale = scale;
-        this.initialScale = scale;
+        this.zoomable.initial = {
+            x: _x,
+            y: _y,
+            scale: _scale,
+        };
+        this.zoomable.x = _x;
+        this.zoomable.y = _y;
+        this.zoomable.scale = _scale;
+        this.zoomable.currentScale = _scale;
+        this.initialScale = _scale;
         this.zoomable.apply(animate, duration);
     };
     return ImageZoomable;
