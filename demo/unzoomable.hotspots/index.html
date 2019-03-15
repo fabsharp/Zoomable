@@ -26,7 +26,11 @@
     </style>
 </head>
 <body>
-<div id="parent1" touch-action="none"></div>
+<div id="parent1" touch-action="none">
+    <div id="test" class="plop">
+        <img src="./hotspot.png"/>
+    </div>
+</div>
 <script src="../../dist/zoomable.js"></script>
 <script src="ImageMap.js"></script>
 <script>
@@ -55,7 +59,7 @@
         bound: true
     });
 
-    var hotspot1 = map.addHotspot(1500, 900, './hotspot.png');
+    var hotspot1 = map.addHotspot(1500, 900, document.getElementById('test'));
     var hotspot2 = map.addHotspot(1000, 750, './hotspot.png', true, {
         id: "myHotspotId",
         classes: ["plop", "foo", "test"],

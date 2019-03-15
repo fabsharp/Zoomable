@@ -3,8 +3,18 @@ var Hotspot = function(x, y, src, scale, data) {
     this.x = x;
     this.y = y;
     this.scaleOpt = (typeof scale === 'boolean') ? scale : false;
-    this.src = src;
-    this.element = document.createElement('img');
+    if (typeof src === 'string') {
+        this.element = document.createElement('img');
+        this.element.onload = function() {
+            self.element.style.top = (self.scaleOpt) ? (-(self.element.height / 2) + 'px') : (-(self.element.height) + 'px');
+            self.element.style.left =  -(self.element.width / 2) + 'px';
+        };
+        this.element.src = src;
+    } else if (typeof src === 'object') {
+        this.element = src;
+        this.element.style.top = (this.scaleOpt) ? (-(this.element.height / 2) + 'px') : (-(this.element.height) + 'px');
+        this.element.style.left =  -(this.element.width / 2) + 'px';
+    }
     this.element.style.position = 'absolute';
     this.element.className = 'hotspot';
     if(data) {
@@ -28,11 +38,6 @@ var Hotspot = function(x, y, src, scale, data) {
     if((!data) || (!data.css) || (!data.css.zIndex)){
         self.element.style.zIndex = '1';
     }
-    this.element.onload = function() {
-        self.element.style.top = (self.scaleOpt) ? (-(self.element.height / 2) + 'px') : (-(self.element.height) + 'px');
-        self.element.style.left =  -(self.element.width / 2) + 'px';
-    };
-    this.element.src = src;
 };
 Hotspot.prototype.apply = function(tX, tY, scale, animate, duration) {
     if (animate === true) {
